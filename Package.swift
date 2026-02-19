@@ -17,9 +17,16 @@ let package = Package(
             ],
             exclude: [
                 "Info.plist",
+                "Poof.icon",
             ],
             resources: [
                 .process("Resources"),
+            ]
+        ),
+        .testTarget(
+            name: "PoofTests",
+            dependencies: [
+                "Poof",
             ]
         ),
     ]

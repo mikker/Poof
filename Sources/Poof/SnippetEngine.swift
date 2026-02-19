@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 final class SnippetEngine {
   private let injector: TextInjector
   private var monitor: Any?
@@ -21,7 +22,9 @@ final class SnippetEngine {
   func start() {
     stop()
     monitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-      self?.handle(event)
+      Task { @MainActor [weak self] in
+        self?.handle(event)
+      }
     }
   }
 

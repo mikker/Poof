@@ -12,6 +12,31 @@ final class LaunchAtLoginController: ObservableObject {
   }
 
   func refresh() {
+    updateStatus(clearError: true)
+  }
+
+  func setEnabled(_ enabled: Bool) {
+    guard #available(macOS 13.0, *) else { return }
+
+    do {
+      if enabled {
+        try SMAppService.mainApp.register()
+      } else {
+        try SMAppService.mainApp.unregister()
+      }
+      errorMessage = nil
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+
+    updateStatus(clearError: false)
+  }
+
+  private func updateStatus(clearError: Bool) {
+    if clearError {
+      errorMessage = nil
+    }
+
     guard #available(macOS 13.0, *) else {
       isEnabled = false
       statusMessage = "Launch at login requires macOS 13+."
@@ -33,22 +58,5 @@ final class LaunchAtLoginController: ObservableObject {
     @unknown default:
       statusMessage = nil
     }
-  }
-
-  func setEnabled(_ enabled: Bool) {
-    guard #available(macOS 13.0, *) else { return }
-
-    do {
-      if enabled {
-        try SMAppService.mainApp.register()
-      } else {
-        try SMAppService.mainApp.unregister()
-      }
-      errorMessage = nil
-    } catch {
-      errorMessage = error.localizedDescription
-    }
-
-    refresh()
   }
 }

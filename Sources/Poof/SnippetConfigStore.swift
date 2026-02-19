@@ -4,40 +4,6 @@ import TOMLKit
 
 @MainActor
 final class SnippetConfigStore {
-  private struct SnippetFile: Decodable {
-    var snippets: [SnippetDefinition]?
-    var snippet: [SnippetDefinition]?
-  }
-
-  private struct SnippetDefinition: Decodable {
-    let trigger: String
-    let replace: String
-    let details: String?
-    let caseSensitive: Bool?
-    let disabled: Bool?
-
-    enum CodingKeys: String, CodingKey {
-      case trigger
-      case replace
-      case details = "description"
-      case caseSensitive = "case_sensitive"
-      case disabled
-    }
-
-    func toSnippet() -> Snippet? {
-      guard disabled != true else { return nil }
-      let normalizedTrigger = trigger.trimmingCharacters(in: .whitespacesAndNewlines)
-      guard !normalizedTrigger.isEmpty else { return nil }
-
-      return Snippet(
-        trigger: normalizedTrigger,
-        replacementTemplate: replace,
-        details: details,
-        caseSensitive: caseSensitive ?? true
-      )
-    }
-  }
-
   private let fileManager: FileManager
   private let preferences: Preferences
   private let decoder = TOMLDecoder()
@@ -45,6 +11,7 @@ final class SnippetConfigStore {
   private var directoryWatchFD: CInt = -1
   private var directoryWatchSource: DispatchSourceFileSystemObject?
   private var pendingReload: DispatchWorkItem?
+  private var pendingWatchRestart: DispatchWorkItem?
 
   private(set) var snippets: [Snippet] = []
   private(set) var lastErrors: [String] = []
@@ -90,7 +57,8 @@ final class SnippetConfigStore {
   func reload() {
     let files = discoverConfigFiles()
 
-    var discoveredSnippets: [Snippet] = []
+    var deduplicatedSnippets: [String: Snippet] = [:]
+    var triggerSources: [String: String] = [:]
     var discoveredErrors: [String] = []
 
     for fileURL in files {
@@ -100,23 +68,23 @@ final class SnippetConfigStore {
           throw CocoaError(.fileReadCorruptFile)
         }
 
-        let loadedSnippets = try decodeSnippets(from: toml)
-        if loadedSnippets.isEmpty {
-          discoveredErrors.append("\(fileURL.lastPathComponent): no snippets found")
-        } else {
-          discoveredSnippets.append(contentsOf: loadedSnippets)
+        let loadedSnippets = try SnippetFileParser.parse(toml, decoder: decoder)
+        for snippet in loadedSnippets {
+          if let previousSource = triggerSources[snippet.trigger] {
+            discoveredErrors.append(
+              "duplicate trigger '\(snippet.trigger)' in \(fileURL.lastPathComponent); overriding \(previousSource)"
+            )
+          }
+
+          deduplicatedSnippets[snippet.trigger] = snippet
+          triggerSources[snippet.trigger] = fileURL.lastPathComponent
         }
       } catch {
         discoveredErrors.append("\(fileURL.lastPathComponent): \(error.localizedDescription)")
       }
     }
 
-    var deduplicated: [String: Snippet] = [:]
-    for snippet in discoveredSnippets {
-      deduplicated[snippet.trigger] = snippet
-    }
-
-    snippets = deduplicated.values.sorted {
+    snippets = deduplicatedSnippets.values.sorted {
       if $0.trigger.count == $1.trigger.count {
         return $0.trigger < $1.trigger
       }
@@ -130,9 +98,14 @@ final class SnippetConfigStore {
   func startWatching() {
     stopWatching()
 
+    ensureBootstrapFilesExist()
+
     let path = configDirectoryURL.path
     directoryWatchFD = open(path, O_EVTONLY)
-    guard directoryWatchFD >= 0 else { return }
+    guard directoryWatchFD >= 0 else {
+      scheduleWatchRestart()
+      return
+    }
 
     let source = DispatchSource.makeFileSystemObjectSource(
       fileDescriptor: directoryWatchFD,
@@ -140,8 +113,9 @@ final class SnippetConfigStore {
       queue: .main
     )
 
-    source.setEventHandler { [weak self] in
-      self?.scheduleReload()
+    source.setEventHandler { [weak self, weak source] in
+      guard let self, let source else { return }
+      self.handleWatchEvent(source.data)
     }
 
     source.setCancelHandler { [fd = directoryWatchFD] in
@@ -157,6 +131,8 @@ final class SnippetConfigStore {
   func stopWatching() {
     pendingReload?.cancel()
     pendingReload = nil
+    pendingWatchRestart?.cancel()
+    pendingWatchRestart = nil
 
     directoryWatchSource?.cancel()
     directoryWatchSource = nil
@@ -181,6 +157,24 @@ final class SnippetConfigStore {
     DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(250), execute: workItem)
   }
 
+  private func handleWatchEvent(_ event: DispatchSource.FileSystemEvent) {
+    scheduleReload()
+    if event.contains(.delete) || event.contains(.rename) {
+      scheduleWatchRestart()
+    }
+  }
+
+  private func scheduleWatchRestart() {
+    pendingWatchRestart?.cancel()
+
+    let workItem = DispatchWorkItem { [weak self] in
+      self?.restartWatching()
+    }
+
+    pendingWatchRestart = workItem
+    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300), execute: workItem)
+  }
+
   private func discoverConfigFiles() -> [URL] {
     guard fileManager.fileExists(atPath: configDirectoryURL.path) else { return [] }
 
@@ -197,23 +191,6 @@ final class SnippetConfigStore {
     }
 
     return files.sorted { $0.path < $1.path }
-  }
-
-  private func decodeSnippets(from toml: String) throws -> [Snippet] {
-    if let file = try? decoder.decode(SnippetFile.self, from: toml) {
-      let fromPlural = file.snippets?.compactMap { $0.toSnippet() } ?? []
-      let fromSingularArray = file.snippet?.compactMap { $0.toSnippet() } ?? []
-      let combined = fromPlural + fromSingularArray
-      if !combined.isEmpty { return combined }
-    }
-
-    if let single = try? decoder.decode(SnippetDefinition.self, from: toml), let snippet = single.toSnippet() {
-      return [snippet]
-    }
-
-    let strictFile = try decoder.decode(SnippetFile.self, from: toml)
-    return (strictFile.snippets?.compactMap { $0.toSnippet() } ?? [])
-      + (strictFile.snippet?.compactMap { $0.toSnippet() } ?? [])
   }
 
   private func defaultSnippetFileContents() -> String {

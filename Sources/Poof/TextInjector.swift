@@ -51,19 +51,20 @@ final class TextInjector {
   }
 
   private func injectTextByClipboardPaste(_ text: String) {
-    let pasteboard = NSPasteboard.general
-    let previousText = pasteboard.string(forType: .string)
+    let snapshot = PasteboardSnapshot.capture(from: NSPasteboard.general)
 
+    let pasteboard = NSPasteboard.general
     pasteboard.clearContents()
     pasteboard.setString(text, forType: .string)
+    let insertedChangeCount = pasteboard.changeCount
 
     postKeyPress(keyCode: CGKeyCode(kVK_ANSI_V), flags: [.maskCommand])
 
     DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(150)) {
-      pasteboard.clearContents()
-      if let previousText {
-        pasteboard.setString(previousText, forType: .string)
-      }
+      let pasteboard = NSPasteboard.general
+      // Don't overwrite clipboard contents if the user copied something else after expansion.
+      guard pasteboard.changeCount == insertedChangeCount else { return }
+      snapshot.restore(to: pasteboard)
     }
   }
 
@@ -87,6 +88,50 @@ final class TextInjector {
     keyUp.flags = flags
     keyDown.post(tap: .cghidEventTap)
     keyUp.post(tap: .cghidEventTap)
+  }
+}
+
+private struct PasteboardSnapshot: Sendable {
+  struct Item: Sendable {
+    struct Representation: Sendable {
+      let type: String
+      let data: Data
+    }
+
+    let representations: [Representation]
+  }
+
+  let items: [Item]
+
+  static func capture(from pasteboard: NSPasteboard) -> PasteboardSnapshot {
+    let copiedItems = (pasteboard.pasteboardItems ?? []).map { item in
+      var representations: [Item.Representation] = []
+      for type in item.types {
+        if let data = item.data(forType: type) {
+          representations.append(.init(type: type.rawValue, data: data))
+        }
+      }
+      return Item(representations: representations)
+    }
+    return PasteboardSnapshot(items: copiedItems)
+  }
+
+  func restore(to pasteboard: NSPasteboard) {
+    pasteboard.clearContents()
+    guard !items.isEmpty else { return }
+
+    let restoredItems = items.map { item in
+      let pasteboardItem = NSPasteboardItem()
+      for representation in item.representations {
+        pasteboardItem.setData(
+          representation.data,
+          forType: NSPasteboard.PasteboardType(representation.type)
+        )
+      }
+      return pasteboardItem
+    }
+
+    pasteboard.writeObjects(restoredItems)
   }
 }
 
