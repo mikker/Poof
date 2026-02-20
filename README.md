@@ -1,31 +1,14 @@
 # Poof
 
-Poof is a macOS-native text snippet expander menubar app.
+Poof is a macOS text snippet expander.
 
-## Current v1 behavior
-
-- Menubar-only app (`LSUIElement`-style behavior via accessory activation policy)
 - Global snippet expansion via typed triggers
-- Trigger mode is user-selectable:
+- Two modes:
   - Delimiter mode: expand after trigger + delimiter
   - Immediate mode: expand as soon as trigger is fully typed
-- Optional launch-at-login toggle in Settings
-- TOML-driven config from a user-selectable directory
-- Multiple config files are loaded recursively from that directory (`**/*.toml`)
+- TOML-driven config from a user-selectable directory (keep in your dotfiles)
 
-## Config directory
-
-Default:
-
-`~/Library/Application Support/Poof`
-
-On first launch, Poof creates:
-
-- `snippets/default.toml`
-
-You can change the config directory from `Settings…`.
-
-## TOML format
+## TOML config format
 
 Use `[[snippets]]` entries in any `.toml` file:
 
@@ -51,24 +34,26 @@ Supported template tokens:
 - `{{uuid}}` -> random UUID
 - `{{cursor}}` -> cursor landing position after expansion
 
-## Build
+## Development
 
 ```bash
-swift build
-swift run
+$ just build
+$ just run
+$ just test
 ```
 
-## Xcode project
+Or use [dude_suite](https://github.com/mikker/dude_suite).
 
 ```bash
-bin/generate-xcodeproj
-open Poof.xcodeproj
+$ suite
 ```
-
-`AppIcon` is configured on the app target, so app icon handling is managed by the asset catalog.
 
 ## Raycast import
 
 ```bash
 just import-raycast "/path/to/Snippets.json"
 ```
+
+## License
+
+MIT
