@@ -8,7 +8,7 @@ final class SettingsWindowController: NSWindowController {
     let rootView = SettingsView(model: model)
 
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 760, height: 480),
+      contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
       backing: .buffered,
       defer: false
@@ -31,6 +31,8 @@ final class SettingsWindowController: NSWindowController {
   }
 }
 
+// MARK: - Settings View
+
 private struct SettingsView: View {
   @ObservedObject var model: AppModel
   @StateObject private var launchAtLogin = LaunchAtLoginController()
@@ -47,44 +49,59 @@ private struct SettingsView: View {
       templateTokensSection
     }
     .formStyle(.grouped)
-    .padding(18)
-    .frame(minWidth: 720, minHeight: 440)
+    .frame(minWidth: 480, minHeight: 440)
     .onAppear {
       launchAtLogin.refresh()
       refreshPermissions()
     }
   }
 
-  private var permissionsSection: some View {
-    Section("Permissions") {
-      LabeledContent("Accessibility") {
-        Text(accessibilityTrusted ? "Granted" : "Not granted")
-          .foregroundStyle(accessibilityTrusted ? Color.secondary : Color.orange)
-      }
-      LabeledContent("Input Monitoring") {
-        Text(inputMonitoringTrusted ? "Granted" : "Not granted")
-          .foregroundStyle(inputMonitoringTrusted ? Color.secondary : Color.orange)
-      }
+  // MARK: - Permissions
 
-      HStack {
+  private var permissionsSection: some View {
+    Section {
+      permissionRow("Accessibility", granted: accessibilityTrusted)
+      permissionRow("Input Monitoring", granted: inputMonitoringTrusted)
+
+      HStack(spacing: 8) {
         Button("Open Accessibility") {
           openPrivacyPane("Privacy_Accessibility")
         }
         Button("Open Input Monitoring") {
           openPrivacyPane("Privacy_ListenEvent")
         }
-        Button("Request prompts") {
+        Spacer()
+        Button("Request Prompts") {
           requestPermissionPrompts()
         }
-        Button("Refresh") {
+        Button {
           refreshPermissions()
+        } label: {
+          Image(systemName: "arrow.clockwise")
         }
+        .help("Refresh permission status")
+      }
+    } header: {
+      Label("Permissions", systemImage: "lock.shield")
+    }
+  }
+
+  private func permissionRow(_ name: String, granted: Bool) -> some View {
+    LabeledContent(name) {
+      HStack(spacing: 4) {
+        Image(systemName: granted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+          .foregroundStyle(granted ? .green : .orange)
+          .imageScale(.small)
+        Text(granted ? "Granted" : "Not Granted")
+          .foregroundStyle(granted ? Color.secondary : Color.orange)
       }
     }
   }
 
+  // MARK: - Startup
+
   private var startupSection: some View {
-    Section("Startup") {
+    Section {
       Toggle(
         "Launch Poof at login",
         isOn: Binding(
@@ -100,15 +117,19 @@ private struct SettingsView: View {
       }
 
       if let errorMessage = launchAtLogin.errorMessage {
-        Text(errorMessage)
+        Label(errorMessage, systemImage: "exclamationmark.triangle")
           .font(.footnote)
           .foregroundStyle(.orange)
       }
+    } header: {
+      Label("Startup", systemImage: "power")
     }
   }
 
+  // MARK: - Expansion
+
   private var expansionSection: some View {
-    Section("Expansion") {
+    Section {
       Picker(
         "Trigger behavior",
         selection: Binding(
@@ -121,11 +142,15 @@ private struct SettingsView: View {
         }
       }
       .pickerStyle(.radioGroup)
+    } header: {
+      Label("Expansion", systemImage: "text.badge.plus")
     }
   }
 
+  // MARK: - Configuration
+
   private var configurationSection: some View {
-    Section("Configuration") {
+    Section {
       LabeledContent("Folder") {
         Text(model.configDirectoryPath)
           .font(.footnote.monospaced())
@@ -134,8 +159,8 @@ private struct SettingsView: View {
           .multilineTextAlignment(.trailing)
       }
 
-      HStack {
-        Button("Choose…") {
+      HStack(spacing: 8) {
+        Button("Choose\u{2026}") {
           model.chooseConfigDirectory()
         }
         Button("Reveal") {
@@ -144,46 +169,72 @@ private struct SettingsView: View {
         Button("Reset") {
           model.resetConfigDirectory()
         }
-        Button("Reload snippets") {
+        Spacer()
+        Button {
           model.reload()
+        } label: {
+          Label("Reload Snippets", systemImage: "arrow.clockwise")
         }
       }
+    } header: {
+      Label("Configuration", systemImage: "folder")
     }
   }
 
+  // MARK: - Status
+
   private var statusSection: some View {
-    Section("Status") {
+    Section {
       LabeledContent("Active snippets") {
         Text("\(model.snippetCount)")
+          .monospacedDigit()
       }
 
       if model.errors.isEmpty {
-        Text("No config errors detected.")
+        Label("No config errors detected.", systemImage: "checkmark.circle")
           .foregroundStyle(.secondary)
+          .font(.footnote)
       } else {
-        Text("Config errors")
-          .font(.headline)
         ForEach(model.errors.prefix(8), id: \.self) { error in
-          Text(error)
-            .foregroundStyle(.orange)
-            .font(.footnote)
+          Label {
+            Text(error)
+          } icon: {
+            Image(systemName: "exclamationmark.triangle")
+          }
+          .foregroundStyle(.orange)
+          .font(.footnote)
         }
       }
+    } header: {
+      Label("Status", systemImage: "info.circle")
     }
   }
 
+  // MARK: - Template Tokens
+
   private var templateTokensSection: some View {
-    Section("Template tokens") {
-      Text(
-        """
-        {{date}} {{time}} {{datetime}} {{date:yyyy-MM-dd}}
-        {{clipboard}} {{uuid}} {{cursor}}
-        """
-      )
-      .font(.footnote.monospaced())
+    Section {
+      FlowLayout(spacing: 6) {
+        ForEach(Self.templateTokens, id: \.self) { token in
+          Text(token)
+            .font(.caption.monospaced())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+        }
+      }
       .textSelection(.enabled)
+    } header: {
+      Label("Template Tokens", systemImage: "curlybraces")
     }
   }
+
+  private static let templateTokens = [
+    "{{date}}", "{{time}}", "{{datetime}}", "{{date:yyyy-MM-dd}}",
+    "{{clipboard}}", "{{uuid}}", "{{cursor}}",
+  ]
+
+  // MARK: - Helpers
 
   private func refreshPermissions() {
     accessibilityTrusted = AXIsProcessTrusted()
@@ -194,9 +245,7 @@ private struct SettingsView: View {
     let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
     _ = AXIsProcessTrustedWithOptions(options)
 
-    if #available(macOS 10.15, *) {
-      _ = CGRequestListenEventAccess()
-    }
+    _ = CGRequestListenEventAccess()
 
     DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(400)) {
       refreshPermissions()
@@ -210,9 +259,63 @@ private struct SettingsView: View {
   }
 
   private static func hasInputMonitoringPermission() -> Bool {
-    if #available(macOS 10.15, *) {
-      return CGPreflightListenEventAccess()
+    return CGPreflightListenEventAccess()
+  }
+}
+
+// MARK: - Flow Layout
+
+private struct FlowLayout: Layout {
+  var spacing: CGFloat = 8
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    let result = arrange(proposal: proposal, subviews: subviews)
+    return result.size
+  }
+
+  func placeSubviews(
+    in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
+  ) {
+    let result = arrange(proposal: proposal, subviews: subviews)
+    for (index, position) in result.positions.enumerated() {
+      subviews[index].place(
+        at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y),
+        proposal: .unspecified
+      )
     }
-    return true
+  }
+
+  private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> ArrangeResult {
+    let maxWidth = proposal.width ?? .infinity
+    var positions: [CGPoint] = []
+    var currentX: CGFloat = 0
+    var currentY: CGFloat = 0
+    var lineHeight: CGFloat = 0
+    var totalWidth: CGFloat = 0
+
+    for subview in subviews {
+      let size = subview.sizeThatFits(.unspecified)
+
+      if currentX + size.width > maxWidth, currentX > 0 {
+        currentX = 0
+        currentY += lineHeight + spacing
+        lineHeight = 0
+      }
+
+      positions.append(CGPoint(x: currentX, y: currentY))
+      lineHeight = max(lineHeight, size.height)
+      currentX += size.width + spacing
+      totalWidth = max(totalWidth, currentX - spacing)
+    }
+
+    return ArrangeResult(
+      size: CGSize(width: totalWidth, height: currentY + lineHeight),
+      positions: positions
+    )
+  }
+
+  private struct ArrangeResult {
+    var size: CGSize
+    var positions: [CGPoint]
   }
 }
