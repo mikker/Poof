@@ -2,13 +2,10 @@ default := "build"
 set dotenv-load := true
 arch := `uname -m`
 
-xcode-setup:
-  bin/generate-xcodeproj
-
-build: xcode-setup
+build:
   bin/agent-build build -project Poof.xcodeproj -scheme Poof -destination "platform=macOS,arch={{arch}}" CODE_SIGNING_ALLOWED=NO
 
-build-release: xcode-setup
+build-release:
   bash -lc 'set -euo pipefail; bin/build-release-app'
 
 kill:
