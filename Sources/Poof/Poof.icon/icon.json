@@ -1,21 +1,15 @@
 {
   "color-space-for-untagged-svg-colors" : "display-p3",
-  "fill" : "automatic",
+  "fill" : {
+    "solid" : "display-p3:0.92236,0.32446,0.29468,1.00000"
+  },
   "groups" : [
     {
       "layers" : [
         {
           "glass" : false,
-          "hidden" : false,
-          "image-name" : "replicate-prediction-tyjbamsye9rmy0cwekdraeehwg.png",
-          "name" : "replicate-prediction-tyjbamsye9rmy0cwekdraeehwg",
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              -19.7109375,
-              12.5
-            ]
-          }
+          "image-name" : "2 - Layer.svg",
+          "name" : "2 - Layer"
         }
       ],
       "shadow" : {
