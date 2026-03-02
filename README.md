@@ -8,6 +8,16 @@ Poof is a macOS text snippet expander.
   - Immediate mode: expand as soon as trigger is fully typed
 - TOML-driven config from a user-selectable directory (keep in your dotfiles)
 
+## Install
+
+📦 [Download latest version](https://github.com/mikker/poof/releases)
+
+or
+
+```sh
+$ brew install mikker/tap/poof
+```
+
 ## TOML config format
 
 Use `[[snippets]]` entries in any `.toml` file:
@@ -70,7 +80,7 @@ just distribute 0.1.1
 - uploads the zip to a GitHub Release
 - prepends `CHANGELOG.md`
 - updates Sparkle `appcast.xml`
-- updates the `poof` Homebrew cask in `../homebrew-cask` or `mikker/homebrew-cask`
+- updates the `poof` Homebrew cask in your tap (`../homebrew-tap` or `mikker/homebrew-tap`)
 
 ## License
 

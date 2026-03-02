@@ -15,12 +15,12 @@ EDITOR_CMD="${EDITOR:-${VISUAL:-vi}}"
 GH_REPO="mikker/poof"
 SKIP_RELEASE_UPLOAD="${SKIP_RELEASE_UPLOAD:-}"
 SKIP_PUSH="${SKIP_PUSH:-}"
-SKIP_HOMEBREW_CASK_UPDATE="${SKIP_HOMEBREW_CASK_UPDATE:-}"
-HOMEBREW_CASK_LOCAL_REPO="${HOMEBREW_CASK_LOCAL_REPO:-$ROOT/../homebrew-cask}"
-HOMEBREW_CASK_REPO="${HOMEBREW_CASK_REPO:-mikker/homebrew-cask}"
-HOMEBREW_CASK_PATH="${HOMEBREW_CASK_PATH:-Casks/p/poof.rb}"
-HOMEBREW_CASK_BRANCH="${HOMEBREW_CASK_BRANCH:-}"
-HOMEBREW_CASK_TOKEN="${HOMEBREW_CASK_TOKEN:-}"
+SKIP_HOMEBREW_TAP_UPDATE="${SKIP_HOMEBREW_TAP_UPDATE:-}"
+HOMEBREW_TAP_LOCAL_REPO="${HOMEBREW_TAP_LOCAL_REPO:-$ROOT/../homebrew-tap}"
+HOMEBREW_TAP_REPO="${HOMEBREW_TAP_REPO:-mikker/homebrew-tap}"
+HOMEBREW_TAP_PATH="${HOMEBREW_TAP_PATH:-Casks/poof.rb}"
+HOMEBREW_TAP_BRANCH="${HOMEBREW_TAP_BRANCH:-}"
+HOMEBREW_TAP_TOKEN="${HOMEBREW_TAP_TOKEN:-}"
 
 die() {
   echo "$*" >&2
@@ -178,15 +178,15 @@ end
 EOF
 }
 
-gh_cask() {
-  if [[ -n "$HOMEBREW_CASK_TOKEN" ]]; then
-    GH_TOKEN="$HOMEBREW_CASK_TOKEN" gh "$@"
+gh_tap() {
+  if [[ -n "$HOMEBREW_TAP_TOKEN" ]]; then
+    GH_TOKEN="$HOMEBREW_TAP_TOKEN" gh "$@"
   else
     gh "$@"
   fi
 }
 
-update_homebrew_cask() {
+update_homebrew_tap() {
   local version="$1"
   local build="$2"
   local sha="$3"
@@ -195,23 +195,23 @@ update_homebrew_cask() {
 
   cask_content="$(render_cask "$version" "$build" "$sha" "$repo")"
 
-  if [[ -d "$HOMEBREW_CASK_LOCAL_REPO/.git" ]]; then
-    local local_path="$HOMEBREW_CASK_LOCAL_REPO/$HOMEBREW_CASK_PATH"
+  if [[ -d "$HOMEBREW_TAP_LOCAL_REPO/.git" ]]; then
+    local local_path="$HOMEBREW_TAP_LOCAL_REPO/$HOMEBREW_TAP_PATH"
     mkdir -p "$(dirname "$local_path")"
     printf "%s\n" "$cask_content" > "$local_path"
-    echo "Updated local Homebrew cask: $local_path"
+    echo "Updated local Homebrew tap cask: $local_path"
     return 0
   fi
 
   require_cmd gh
 
-  if [[ -z "$HOMEBREW_CASK_BRANCH" ]]; then
-    HOMEBREW_CASK_BRANCH="$(gh_cask api "repos/$HOMEBREW_CASK_REPO" --jq ".default_branch")"
+  if [[ -z "$HOMEBREW_TAP_BRANCH" ]]; then
+    HOMEBREW_TAP_BRANCH="$(gh_tap api "repos/$HOMEBREW_TAP_REPO" --jq ".default_branch")"
   fi
 
   local existing_sha=""
   existing_sha="$(
-    gh_cask api "repos/$HOMEBREW_CASK_REPO/contents/$HOMEBREW_CASK_PATH" \
+    gh_tap api "repos/$HOMEBREW_TAP_REPO/contents/$HOMEBREW_TAP_PATH" \
       --jq ".sha" 2>/dev/null || true
   )"
 
@@ -221,17 +221,17 @@ update_homebrew_cask() {
   local -a args=(
     api
     -X PUT
-    "repos/$HOMEBREW_CASK_REPO/contents/$HOMEBREW_CASK_PATH"
+    "repos/$HOMEBREW_TAP_REPO/contents/$HOMEBREW_TAP_PATH"
     -f "message=Update poof cask to ${version} (${build})"
     -f "content=$content_b64"
-    -f "branch=$HOMEBREW_CASK_BRANCH"
+    -f "branch=$HOMEBREW_TAP_BRANCH"
   )
   if [[ -n "$existing_sha" ]]; then
     args+=(-f "sha=$existing_sha")
   fi
 
-  gh_cask "${args[@]}" >/dev/null
-  echo "Updated remote Homebrew cask: $HOMEBREW_CASK_REPO/$HOMEBREW_CASK_PATH"
+  gh_tap "${args[@]}" >/dev/null
+  echo "Updated remote Homebrew tap cask: $HOMEBREW_TAP_REPO/$HOMEBREW_TAP_PATH"
 }
 
 require_cmd git
@@ -359,8 +359,8 @@ if [[ -z "$SKIP_RELEASE_UPLOAD" ]]; then
   fi
 fi
 
-if [[ -z "$SKIP_HOMEBREW_CASK_UPDATE" ]]; then
-  update_homebrew_cask "$VERSION" "$BUILD" "$SHA256" "$GH_REPO"
+if [[ -z "$SKIP_HOMEBREW_TAP_UPDATE" ]]; then
+  update_homebrew_tap "$VERSION" "$BUILD" "$SHA256" "$GH_REPO"
 fi
 
 echo "Distribution complete for ${VERSION} (${BUILD})."
