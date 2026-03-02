@@ -7,6 +7,15 @@
         <language>en</language>
         <item>
             <title>0.1.0</title>
+            <pubDate>Mon, 02 Mar 2026 13:37:57 +0100</pubDate>
+            <sparkle:version>16</sparkle:version>
+            <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:releaseNotesLink>https://raw.githubusercontent.com/mikker/poof/main/Poof-0.1.0-16.txt</sparkle:releaseNotesLink>
+            <enclosure url="https://github.com/mikker/poof/releases/download/v0.1.0/Poof-0.1.0-16.zip" length="2720287" type="application/octet-stream" sparkle:edSignature="jc9v1GA53lpgBWvypFhoZLaOUgixlHbh3xoHBl/Y3Z7527Nj4aCcZjprajR/TgNTPq23576K5VhtuiiPjjNCCQ=="/>
+        </item>
+        <item>
+            <title>0.1.0</title>
             <pubDate>Fri, 20 Feb 2026 09:32:18 +0100</pubDate>
             <sparkle:version>13</sparkle:version>
             <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
