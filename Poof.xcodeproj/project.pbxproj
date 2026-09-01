@@ -19,6 +19,7 @@
 		429E98122F4850930016FD9B /* Poof.icon in Resources */ = {isa = PBXBuildFile; fileRef = 429E98112F4850930016FD9B /* Poof.icon */; };
 		44CD2A936585BDAA828F882F /* SnippetConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A76F738DF7ACCEC9282F19FF /* SnippetConfigStore.swift */; };
 		6A1285D97991218719B4BA10 /* SnippetFileParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8839850A8F4F13C997D1E3C3 /* SnippetFileParser.swift */; };
+		6A1285D97991218719B4BA11 /* SnippetPromptController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8839850A8F4F13C997D1E3C4 /* SnippetPromptController.swift */; };
 		875843E76D25EEBEE97B9971 /* TextInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5C0B7D8986B657890DF9F2 /* TextInjector.swift */; };
 		A1A2A9074152EF21B1F00F1B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 7FADC2074CAF2E3A3AB0A297 /* Sparkle */; };
 		A4F513102CC9C8C3273DDE51 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E87A385BF896558B43D262 /* LaunchAtLoginController.swift */; };
@@ -41,6 +42,7 @@
 		717C57373C516856E21B9B63 /* Snippet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Snippet.swift; sourceTree = "<group>"; };
 		88307AFF01819EB8CD4DAF11 /* Preferences.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		8839850A8F4F13C997D1E3C3 /* SnippetFileParser.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnippetFileParser.swift; sourceTree = "<group>"; };
+		8839850A8F4F13C997D1E3C4 /* SnippetPromptController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnippetPromptController.swift; sourceTree = "<group>"; };
 		8A5C0B7D8986B657890DF9F2 /* TextInjector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TextInjector.swift; sourceTree = "<group>"; };
 		A76F738DF7ACCEC9282F19FF /* SnippetConfigStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnippetConfigStore.swift; sourceTree = "<group>"; };
 		C335CD9F647217CE0F0030A2 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 				A76F738DF7ACCEC9282F19FF /* SnippetConfigStore.swift */,
 				46EED0617ED110B9EB4985BC /* SnippetEngine.swift */,
 				8839850A8F4F13C997D1E3C3 /* SnippetFileParser.swift */,
+				8839850A8F4F13C997D1E3C4 /* SnippetPromptController.swift */,
 				D61F8A1E21946C7DA43DEC81 /* StatusItemController.swift */,
 				8A5C0B7D8986B657890DF9F2 /* TextInjector.swift */,
 				1FC500AFEDF2B389A9FB3A07 /* UpdaterController.swift */,
@@ -214,6 +217,7 @@
 				44CD2A936585BDAA828F882F /* SnippetConfigStore.swift in Sources */,
 				069F0777F418A097E0FEBAAB /* SnippetEngine.swift in Sources */,
 				6A1285D97991218719B4BA10 /* SnippetFileParser.swift in Sources */,
+				6A1285D97991218719B4BA11 /* SnippetPromptController.swift in Sources */,
 				2004C5258C0B3A99200177EC /* StatusItemController.swift in Sources */,
 				875843E76D25EEBEE97B9971 /* TextInjector.swift in Sources */,
 				E93ED0DE47321FF348403F73 /* UpdaterController.swift in Sources */,

@@ -231,7 +231,7 @@ private struct SettingsView: View {
 
   private static let templateTokens = [
     "{{date}}", "{{time}}", "{{datetime}}", "{{date:yyyy-MM-dd}}",
-    "{{clipboard}}", "{{uuid}}", "{{cursor}}",
+    "{{clipboard}}", "{{uuid}}", "{{prompt:Question}}", "{{cursor}}",
   ]
 
   // MARK: - Helpers
