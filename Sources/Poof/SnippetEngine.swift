@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class SnippetEngine {
   private let injector: TextInjector
+  private let prompter: SnippetPromptController
   private var monitor: Any?
   private var triggerMode: ExpansionTriggerMode
   private var snippets: [Snippet] = []
@@ -14,9 +15,14 @@ final class SnippetEngine {
     " ", "\n", "\r", "\t",
   ]
 
-  init(triggerMode: ExpansionTriggerMode, injector: TextInjector = TextInjector()) {
+  init(
+    triggerMode: ExpansionTriggerMode,
+    injector: TextInjector = TextInjector(),
+    prompter: SnippetPromptController = SnippetPromptController()
+  ) {
     self.triggerMode = triggerMode
     self.injector = injector
+    self.prompter = prompter
   }
 
   func start() {
@@ -95,22 +101,7 @@ final class SnippetEngine {
       defer { typedBuffer = "" }
 
       guard let snippet = firstMatchingSnippet(for: typedBuffer) else { return }
-
-      let rendered = SnippetTemplateRenderer.render(snippet.replacementTemplate)
-      let delimiterText = String(character)
-      let outputText = rendered.text + delimiterText
-      let cursorOffset: Int?
-      if let baseOffset = rendered.cursorOffsetFromEnd {
-        cursorOffset = baseOffset + delimiterText.count
-      } else {
-        cursorOffset = nil
-      }
-
-      expand(
-        deleteCount: snippet.trigger.count + delimiterText.count,
-        replacementText: outputText,
-        cursorOffsetFromEnd: cursorOffset
-      )
+      expand(snippet, suffix: String(character))
       return
     }
 
@@ -123,12 +114,7 @@ final class SnippetEngine {
     trimBufferIfNeeded()
 
     guard let snippet = firstMatchingSnippet(for: typedBuffer) else { return }
-    let rendered = SnippetTemplateRenderer.render(snippet.replacementTemplate)
-    expand(
-      deleteCount: snippet.trigger.count,
-      replacementText: rendered.text,
-      cursorOffsetFromEnd: rendered.cursorOffsetFromEnd
-    )
+    expand(snippet, suffix: "")
     typedBuffer = ""
   }
 
@@ -147,12 +133,30 @@ final class SnippetEngine {
     typedBuffer = String(typedBuffer.suffix(maxLength))
   }
 
-  private func expand(deleteCount: Int, replacementText: String, cursorOffsetFromEnd: Int?) {
+  private func expand(_ snippet: Snippet, suffix: String) {
+    let questions = SnippetTemplateRenderer.prompts(in: snippet.replacementTemplate)
+
+    guard !questions.isEmpty else {
+      inject(snippet, suffix: suffix, answers: [:])
+      return
+    }
+
+    prompter.requestAnswers(
+      title: snippet.details ?? snippet.trigger,
+      questions: questions
+    ) { [weak self] answers in
+      self?.inject(snippet, suffix: suffix, answers: answers)
+    }
+  }
+
+  private func inject(_ snippet: Snippet, suffix: String, answers: [String: String]) {
+    let rendered = SnippetTemplateRenderer.render(snippet.replacementTemplate, answers: answers)
+
     ignoreEventsUntil = Date().addingTimeInterval(0.35)
     injector.replaceTypedText(
-      deleteCount: deleteCount,
-      replacementText: replacementText,
-      cursorOffsetFromEnd: cursorOffsetFromEnd
+      deleteCount: snippet.trigger.count + suffix.count,
+      replacementText: rendered.text + suffix,
+      cursorOffsetFromEnd: rendered.cursorOffsetFromEnd.map { $0 + suffix.count }
     )
   }
 }

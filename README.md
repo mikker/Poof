@@ -42,7 +42,18 @@ Supported template tokens:
 - `{{date:<format>}}` -> custom `DateFormatter` format
 - `{{clipboard}}` -> current clipboard text
 - `{{uuid}}` -> random UUID
+- `{{prompt:<question>}}` -> ask for the value when the snippet expands
 - `{{cursor}}` -> cursor landing position after expansion
+
+A snippet can use several `{{prompt:...}}` tokens. Each distinct question becomes
+one field in a small window shown at expansion time, and repeating the same
+question reuses its answer:
+
+```toml
+[[snippets]]
+trigger = ":intro"
+replace = "Hi {{prompt:Their name}}, I'm {{prompt:Your name}}. {{prompt:Their name}} — shall we talk on {{prompt:Which day?}}?"
+```
 
 ## Development
 

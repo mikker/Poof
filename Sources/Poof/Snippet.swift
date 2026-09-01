@@ -24,34 +24,44 @@ struct RenderedSnippet {
 }
 
 enum SnippetTemplateRenderer {
-  static func render(_ template: String) -> RenderedSnippet {
-    var output = ""
-    var cursorPosition: Int?
-    var cursor = template.startIndex
+  private enum Segment {
+    case literal(String)
+    case token(String)
+  }
 
-    while let openRange = template[cursor...].range(of: "{{") {
-      output += String(template[cursor..<openRange.lowerBound])
+  private static let promptPrefix = "prompt:"
 
-      guard let closeRange = template[openRange.upperBound...].range(of: "}}") else {
-        output += String(template[openRange.lowerBound...])
-        cursor = template.endIndex
-        break
+  /// The questions of every `{{prompt:...}}` token, in template order, without repeats.
+  static func prompts(in template: String) -> [String] {
+    var questions: [String] = []
+
+    for case .token(let token) in segments(in: template) {
+      guard let question = promptQuestion(in: token), !questions.contains(question) else {
+        continue
       }
-
-      let token = template[openRange.upperBound..<closeRange.lowerBound]
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-
-      if token == "cursor" {
-        cursorPosition = output.count
-      } else {
-        output += resolveToken(token)
-      }
-
-      cursor = closeRange.upperBound
+      questions.append(question)
     }
 
-    if cursor < template.endIndex {
-      output += String(template[cursor...])
+    return questions
+  }
+
+  static func render(_ template: String, answers: [String: String] = [:]) -> RenderedSnippet {
+    var output = ""
+    var cursorPosition: Int?
+
+    for segment in segments(in: template) {
+      switch segment {
+      case .literal(let text):
+        output += text
+      case .token("cursor"):
+        cursorPosition = output.count
+      case .token(let token):
+        if let question = promptQuestion(in: token) {
+          output += answers[question] ?? ""
+        } else {
+          output += resolveToken(token)
+        }
+      }
     }
 
     if let cursorPosition {
@@ -60,6 +70,34 @@ enum SnippetTemplateRenderer {
     }
 
     return RenderedSnippet(text: output, cursorOffsetFromEnd: nil)
+  }
+
+  private static func segments(in template: String) -> [Segment] {
+    var segments: [Segment] = []
+    var cursor = template.startIndex
+
+    while let openRange = template[cursor...].range(of: "{{"),
+      let closeRange = template[openRange.upperBound...].range(of: "}}")
+    {
+      segments.append(.literal(String(template[cursor..<openRange.lowerBound])))
+      segments.append(
+        .token(
+          template[openRange.upperBound..<closeRange.lowerBound]
+            .trimmingCharacters(in: .whitespacesAndNewlines)))
+      cursor = closeRange.upperBound
+    }
+
+    if cursor < template.endIndex {
+      segments.append(.literal(String(template[cursor...])))
+    }
+
+    return segments
+  }
+
+  private static func promptQuestion(in token: String) -> String? {
+    guard token.hasPrefix(promptPrefix) else { return nil }
+    return String(token.dropFirst(promptPrefix.count))
+      .trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
   private static func resolveToken(_ token: String) -> String {

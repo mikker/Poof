@@ -17,6 +17,33 @@ final class SnippetTemplateRendererTests: XCTestCase {
     XCTAssertNil(rendered.cursorOffsetFromEnd)
   }
 
+  func testPromptsAreCollectedInOrderWithoutRepeats() {
+    let questions = SnippetTemplateRenderer.prompts(
+      in: "Hi {{prompt: Their name }}, I'm {{prompt:Your name}}. Bye {{prompt:Their name}}")
+
+    XCTAssertEqual(questions, ["Their name", "Your name"])
+  }
+
+  func testPromptsIgnoresNonPromptTokens() {
+    XCTAssertEqual(SnippetTemplateRenderer.prompts(in: "{{date}} {{cursor}} {{unknown}}"), [])
+  }
+
+  func testRenderSubstitutesAnswersAndKeepsCursorOffset() {
+    let rendered = SnippetTemplateRenderer.render(
+      "Hi {{prompt:Name}},{{cursor}} bye {{prompt:Name}}",
+      answers: ["Name": "Jamie"]
+    )
+
+    XCTAssertEqual(rendered.text, "Hi Jamie, bye Jamie")
+    XCTAssertEqual(rendered.cursorOffsetFromEnd, 10)
+  }
+
+  func testRenderWithoutAnswerLeavesPromptEmpty() {
+    let rendered = SnippetTemplateRenderer.render("Hi {{prompt:Name}}!")
+
+    XCTAssertEqual(rendered.text, "Hi !")
+  }
+
   func testCaseInsensitiveSuffixMatching() {
     let snippet = Snippet(
       trigger: ":sig",
